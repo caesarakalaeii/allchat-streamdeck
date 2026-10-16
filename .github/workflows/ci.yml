@@ -5,6 +5,11 @@ name: CI
 # lives in the All-Chat repository. ADR-0049 names drift between the two plugins
 # as the real cost of shipping both.
 #
+# Pushing a tag `vX.Y.Z` runs the same jobs and then publishes a GitHub release
+# with the packaged .streamDeckPlugin. The tag must match `version` in
+# package.json, and the manifest's four-part `Version` must be that plus `.0`.
+# The annotated tag message becomes the release notes.
+#
 # EVERY job sets timeout-minutes. Without it a job inherits GitHub's 6-hour
 # default, and a hung install gives no signal to act on.
 
@@ -12,6 +17,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:
@@ -135,3 +141,47 @@ jobs:
 
       - name: Action list, shared constants and sync pointers
         run: python3 all-chat/scripts/check-plugin-parity.py
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, parity]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches package.json and the manifest
+        run: |
+          version=$(node -p "require('./package.json').version")
+          manifest=$(node -p "require('./com.allchat.streamdeck.sdPlugin/manifest.json').Version")
+          if [ "$TAG" != "v${version}" ]; then
+            echo "Tag $TAG does not match package.json version $version (expected v${version})" >&2
+            exit 1
+          fi
+          if [ "$manifest" != "${version}.0" ]; then
+            echo "manifest.json Version $manifest does not match package.json version $version (expected ${version}.0)" >&2
+            exit 1
+          fi
+
+      # actions/checkout leaves a lightweight copy of the tag, so fetch the
+      # annotated object to read its message.
+      - name: Release notes from the tag message
+        run: |
+          git fetch --force origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          git for-each-ref "refs/tags/${TAG}" --format='%(contents)' > notes.md
+          cat notes.md
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: allchat-streamdeck-plugin
+          path: dist
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$TAG" dist/*.streamDeckPlugin --verify-tag --title "$TAG" --notes-file notes.md

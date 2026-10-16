@@ -217,6 +217,20 @@ updating](#installing-and-updating). The run artifact stays what it always was:
 the way to test an unmerged branch on real hardware. It expires, and it is only
 reachable from a workflow run page, so it is not something to hand to a user.
 
+### Releasing
+
+Bump `version` in `package.json` (and `package-lock.json`) and `Version` in the
+manifest to the same number plus `.0`, merge that, then push an annotated tag:
+
+```bash
+git tag -a v0.1.3 -m "What changed, in a few lines for the release page"
+git push origin v0.1.3
+```
+
+The tag runs the full CI. If everything passes and the tag matches both version
+fields, the `release` job publishes a GitHub release with the
+`.streamDeckPlugin` attached and the tag message as its notes.
+
 ---
 
 ## Connecting a key to your account
