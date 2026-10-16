@@ -32,7 +32,7 @@
  *   - It never keeps the socket open longer than it must. The listener closes the
  *     moment the code arrives or the timeout expires, whichever comes first.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/allchat/linking.py` (ADR-0049). Both
+ * KEEP IN SYNC with `allchat-streamcontroller/allchat/linking.py` (ADR-0049). Both
  * plugins implement one flow; a change to the request shape or the timeouts here
  * belongs in both files in one change.
  */

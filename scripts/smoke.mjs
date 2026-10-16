@@ -11,7 +11,7 @@
  *
  * It deliberately runs against the *copied* plugin folder, isolated from this
  * repo's `node_modules`. Run in place, Node's upward resolution walks out of
- * `com.allchat.streamdeck.sdPlugin/bin/` into `streamdeck-plugin/node_modules/`
+ * `com.allchat.streamdeck.sdPlugin/bin/` into the repo's own `node_modules/`
  * and finds the SDK there, so an unbundled plugin passes — which is precisely
  * the false negative that hid the bug.
  *

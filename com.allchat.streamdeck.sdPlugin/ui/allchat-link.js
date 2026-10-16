@@ -25,9 +25,9 @@
 		Where a streamer gets a current build. There is no auto-update: the plugin ships
 		as a .streamDeckPlugin file that has to be downloaded and double-clicked, so a
 		build installed before a fix landed stays installed until somebody tells its
-		owner to replace it. See "Installing and updating" in streamdeck-plugin/README.md.
+		owner to replace it. See "Installing and updating" in README.md.
 	*/
-	const INSTALL_PAGE_URL = "https://github.com/caesarakalaeii/all-chat/releases";
+	const INSTALL_PAGE_URL = "https://github.com/caesarakalaeii/allchat-streamdeck/releases";
 
 	/*
 		How long to wait for a terminal message before releasing the button.
@@ -50,7 +50,7 @@
 		    Cutting that off early would break a flow that was working.
 
 		It was 660s for BOTH, so a loopback attempt that died silently held the panel for
-		eleven minutes. scripts/check-plugin-parity.py asserts each of these outlasts the
+		eleven minutes. all-chat/scripts/check-plugin-parity.py asserts each of these outlasts the
 		flow it waits on, reading the flow timeouts out of linking.ts.
 	*/
 	const WATCHDOG_MS = 210_000;

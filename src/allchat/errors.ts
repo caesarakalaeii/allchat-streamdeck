@@ -19,7 +19,7 @@
  *
  * Neither path ever puts the token in a message or a log line.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/allchat/errors.py` (ADR-0049). The
+ * KEEP IN SYNC with `allchat-streamcontroller/allchat/errors.py` (ADR-0049). The
  * 401-vs-403 split is the part that must not drift: one says "re-paste your
  * token", the other says "this is premium", and swapping them costs money.
  */

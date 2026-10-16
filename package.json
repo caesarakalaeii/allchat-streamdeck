@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Elgato Stream Deck plugin for All-Chat: send chat messages and drive polls / predictions from hardware keys.",
-  "license": "AGPL-3.0-or-later",
+  "license": "GPL-3.0-or-later",
   "engines": {
     "node": ">=20.5.1"
   },

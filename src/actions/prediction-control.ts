@@ -14,7 +14,7 @@
  * free account binds three: the start key will keep telling them, informatively,
  * what it would unlock.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/actions/prediction_control.py`
+ * KEEP IN SYNC with `allchat-streamcontroller/actions/prediction_control.py`
  * (ADR-0049).
  */
 

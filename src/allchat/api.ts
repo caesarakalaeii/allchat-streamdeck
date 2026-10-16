@@ -2,8 +2,8 @@
  * The All-Chat endpoints this plugin drives, and which of them the server gates
  * behind premium.
  *
- * Route shapes mirror `services/api-gateway/cmd/main.go`. The premium flag
- * mirrors `services/engagement-service/cmd/main.go`, where `requireEngagementPremium`
+ * Route shapes mirror `all-chat/services/api-gateway/cmd/main.go`. The premium flag
+ * mirrors `all-chat/services/engagement-service/cmd/main.go`, where `requireEngagementPremium`
  * sits on exactly two routes:
  *
  *     POST /overlays/:id/polls              ← premium
@@ -18,9 +18,9 @@
  * to the path is what stops the plugin from ever reporting a premium 403 as a
  * generic failure.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/allchat/api.py` (ADR-0049). The
+ * KEEP IN SYNC with `allchat-streamcontroller/allchat/api.py` (ADR-0049). The
  * action list both plugins implement is pinned in
- * `scripts/check-plugin-parity.py`; a new route belongs in all three places in
+ * `all-chat/scripts/check-plugin-parity.py`; a new route belongs in all three places in
  * one change, or it becomes a button that exists on Linux but not Windows.
  */
 

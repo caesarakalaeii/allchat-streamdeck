@@ -5,9 +5,9 @@
  * The property inspector writes these verbatim into Stream Deck's per-action
  * settings store, so every field is optional: a freshly dropped key has `{}`.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/allchat/settings.py` (ADR-0049).
+ * KEEP IN SYNC with `allchat-streamcontroller/allchat/settings.py` (ADR-0049).
  * The constants below are user-visible on both plugins and are compared by
- * `scripts/check-plugin-parity.py`.
+ * `all-chat/scripts/check-plugin-parity.py`.
  */
 
 /**
@@ -62,7 +62,7 @@ export const LINK_EXCHANGE_PATH = "/api/v1/auth/device/link/exchange";
  * The ONE path the loopback listener serves, and the only path the server accepts
  * in a redirect_uri. Fixed on both sides so the listener has one route and the
  * server's validator has one string to compare — see
- * `services/auth-service/handlers/loopback_redirect.go`.
+ * `all-chat/services/auth-service/handlers/loopback_redirect.go`.
  */
 export const LOOPBACK_PATH = "/allchat/device-callback";
 
@@ -78,7 +78,7 @@ export const LOOPBACK_HOST = "127.0.0.1";
  * Platforms accepted by `POST /api/v1/auth/chat/send`. `all` fans the message out
  * to every connected platform and returns a per-platform result — and fans out to
  * exactly these three, see `handleStreamerSendToAll` in
- * `services/auth-service/handlers/chat_send.go`.
+ * `all-chat/services/auth-service/handlers/chat_send.go`.
  *
  * This list is the SEND surface, which is narrower than the set of platforms
  * All-Chat reads chat from. Keep it that way: an entry here that the server cannot
@@ -95,7 +95,7 @@ export const PLATFORMS = ["all", "twitch", "youtube", "kick"] as const;
  * nowhere, but a key configured before they were removed still has one saved, so the
  * value must be explained rather than reported as a typo.
  *
- * KEEP IN SYNC with `streamcontroller-plugin/allchat/settings.py` (ADR-0049).
+ * KEEP IN SYNC with `allchat-streamcontroller/allchat/settings.py` (ADR-0049).
  */
 export const UNSENDABLE_PLATFORMS: Readonly<Record<string, string>> = {
 	tiktok:
@@ -202,7 +202,7 @@ export function looksLikeToken(token: string): boolean {
  * True when `token` is specifically a paired-device token (from linking).
  *
  * Counterpart of `looks_like_device_token` in
- * `streamcontroller-plugin/allchat/settings.py`. The narrow pair exists so a
+ * `allchat-streamcontroller/allchat/settings.py`. The narrow pair exists so a
  * message can name the right remedy: a device token is re-linked, a pasted token
  * is re-pasted.
  */

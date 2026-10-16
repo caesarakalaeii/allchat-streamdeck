@@ -1,0 +1,137 @@
+name: CI
+
+# Lints, builds, smoke-tests and packages the plugin, and checks it against the
+# StreamController plugin (allchat-streamcontroller) with the parity script that
+# lives in the All-Chat repository. ADR-0049 names drift between the two plugins
+# as the real cost of shipping both.
+#
+# EVERY job sets timeout-minutes. Without it a job inherits GitHub's 6-hour
+# default, and a hung install gives no signal to act on.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Lint, build, package
+    runs-on: ubuntu-latest
+    # Observed ~1min end to end locally (npm ci ~5s, build ~3s, each smoke test
+    # ~2s, pack ~15s). The headroom is for a slow npm mirror; past this it is
+    # stuck, not slow.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # Node 22 is build-only. The Stream Deck app supplies its own Node
+      # (manifest.json pins Nodejs.Version "20"), so package.json's `engines`
+      # floor of 20.5.1 is what actually constrains us.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ESLint plus `tsc --noEmit`. The plugin has no unit tests of its own; the
+      # equivalent assertions live in the StreamController plugin's suite, and
+      # the parity job below is what stops the two from meaning different things.
+      - name: Lint and type-check
+        run: npm run lint
+
+      - name: Build (bundle -> com.allchat.streamdeck.sdPlugin/bin)
+        run: npm run build
+
+      # The .sdPlugin folder IS the plugin, so an empty bin/ is a silent
+      # non-build: the bundler can succeed having emitted nothing if the config
+      # drifts.
+      - name: Assert the compiled entrypoint exists
+        run: test -s com.allchat.streamdeck.sdPlugin/bin/plugin.js
+
+      # The only step that LAUNCHES the plugin. Lint, build, validate and pack
+      # all pass on a plugin that cannot start, which is how a .sdPlugin whose
+      # imports were unresolvable off the dev machine once got as far as being
+      # packaged for a tester. This spawns the plugin the way the Stream Deck app
+      # does, from a copy staged outside the repo so nothing resolves through
+      # node_modules, and asserts it registers over the WebSocket.
+      - name: Smoke test (launch the built plugin)
+        run: npm run smoke
+
+      # Elgato's own manifest validator. Pinned to an exact version rather than
+      # @latest: this is a network fetch on every run and an unpinned tool that
+      # tightens a rule would turn every unrelated PR red. `pack` validates too,
+      # but running it separately makes a manifest failure legible as such.
+      - name: Validate manifest (Elgato CLI)
+        run: npx --yes @elgato/cli@1.9.0 validate com.allchat.streamdeck.sdPlugin
+
+      - name: Package (.streamDeckPlugin)
+        run: npx --yes @elgato/cli@1.9.0 pack com.allchat.streamdeck.sdPlugin --output dist
+
+      # Same smoke test, now against the artifact itself rather than the build
+      # directory: unzip what gets uploaded and launch that. `pack` chooses what
+      # to include, so a packaging rule that dropped a needed file would pass
+      # every check above and fail only on the tester's machine.
+      - name: Smoke test the packaged artifact
+        run: |
+          unzip -q dist/com.allchat.streamdeck.streamDeckPlugin -d dist/unpacked
+          npm run smoke -- dist/unpacked/com.allchat.streamdeck.sdPlugin
+
+      # Downloadable from the run page: unzip, double-click, and the Stream Deck
+      # app installs it. This is how a reviewer tests a PR on real hardware.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: allchat-streamdeck-plugin
+          path: dist/*.streamDeckPlugin
+          if-no-files-found: error
+
+  parity:
+    name: Plugin parity (ADR-0049 action list)
+    runs-on: ubuntu-latest
+    # Observed <1s for the script; the time is the three checkouts.
+    timeout-minutes: 10
+    env:
+      # A change spanning repositories uses one branch name in each of them.
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: allchat-streamdeck
+
+      # Same-named branch when it exists, main otherwise. This is what lets a new
+      # button land on both plugins and in the script's action list together.
+      - name: Resolve sibling refs
+        id: refs
+        run: |
+          for repo in all-chat allchat-streamcontroller; do
+            if git ls-remote --exit-code --heads "https://github.com/caesarakalaeii/${repo}.git" "$BRANCH" >/dev/null; then
+              ref="$BRANCH"
+            else
+              ref=main
+            fi
+            echo "${repo}=${ref}" >> "$GITHUB_OUTPUT"
+            echo "${repo}: ${ref}"
+          done
+
+      - uses: actions/checkout@v7
+        with:
+          repository: caesarakalaeii/all-chat
+          ref: ${{ steps.refs.outputs.all-chat }}
+          path: all-chat
+          sparse-checkout: scripts/check-plugin-parity.py
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/checkout@v7
+        with:
+          repository: caesarakalaeii/allchat-streamcontroller
+          ref: ${{ steps.refs.outputs.allchat-streamcontroller }}
+          path: allchat-streamcontroller
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Action list, shared constants and sync pointers
+        run: python3 all-chat/scripts/check-plugin-parity.py

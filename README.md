@@ -5,8 +5,12 @@ messages, and start, close, lock, resolve or cancel polls and predictions withou
 alt-tabbing out of a stream.
 
 Built with the official [Stream Deck SDK for Node](https://github.com/elgatosf/streamdeck).
-It is a self-contained subproject: its own `package.json` and lockfile, no
-dependency on the Go services and no entry in the root `package.json`.
+It is the Windows and macOS counterpart of
+[`allchat-streamcontroller`](https://github.com/caesarakalaeii/allchat-streamcontroller),
+the Linux plugin; both implement one action list against the HTTP API of the main
+[All-Chat repository](https://github.com/caesarakalaeii/all-chat), whose
+[ADR-0049](https://github.com/caesarakalaeii/all-chat/blob/main/docs/adr/0049-desktop-control-surfaces-via-paired-device-tokens.md)
+records why there are two.
 
 ---
 
@@ -41,7 +45,7 @@ premium, or from the web app, you can always end it — a free account is never
 left with a poll it cannot close.
 
 The plugin does not attempt to work around the gate, and contains no server-side
-code; the gate lives in `services/engagement-service`.
+code; the gate lives in All-Chat's `services/engagement-service`.
 
 ---
 
@@ -59,7 +63,7 @@ for me": it shipped, and it never reached the machine.
 ### Getting a build
 
 Download the newest `com.allchat.streamdeck.streamDeckPlugin` from
-<https://github.com/caesarakalaeii/all-chat/releases>, then double-click it. The
+<https://github.com/caesarakalaeii/allchat-streamdeck/releases>, then double-click it. The
 Stream Deck app installs it and replaces any older copy in place; your keys and
 their settings, including a linked device, survive the replacement.
 
@@ -105,7 +109,7 @@ that fault, and no update mechanism has moved anyone off them. Install a current
 build as above and press **Link with All-Chat** again.
 
 If a current build does the same thing, the flow itself is failing; see
-[Troubleshooting](../docs/guides/streamdeck.md#troubleshooting) in the guide.
+[Troubleshooting](https://github.com/caesarakalaeii/all-chat/blob/main/docs/guides/streamdeck.md#troubleshooting) in the guide.
 
 ---
 
@@ -120,7 +124,6 @@ Requires Node 20.5.1 or newer and the Stream Deck app 6.9+.
 > cost is dropping users still on 6.5 through 6.8.
 
 ```bash
-cd streamdeck-plugin
 npm ci
 npm run build
 ```
@@ -166,7 +169,7 @@ The shipped `.sdPlugin` folder contains **no `node_modules`**, so anything
 machine that installs it. `tsc` transpiles but rewrites no imports, so a
 `tsc`-only build left `import streamDeck from "@elgato/streamdeck"` in the
 entrypoint and the plugin died on startup with `ERR_MODULE_NOT_FOUND` — everywhere
-except a dev checkout, where the sibling `streamdeck-plugin/node_modules/` happens
+except a dev checkout, where the repository's own `node_modules/` happens
 to satisfy it, which is exactly why it went unnoticed.
 
 `scripts/build.mjs` therefore runs esbuild and inlines the SDK and its transitive
@@ -178,13 +181,13 @@ on a plugin that cannot start, because none of them start it. The smoke test
 spawns the plugin exactly as the Stream Deck app does — `-port`, `-pluginUUID`,
 `-registerEvent`, `-info` — and fails unless it connects back and registers. It
 runs against a copy staged outside the repo on purpose: run in place, Node's
-upward module resolution finds the SDK in `streamdeck-plugin/node_modules/` and an
+upward module resolution finds the SDK in the repository's `node_modules/` and an
 unbundled plugin passes.
 
 ### Packaging
 
-`.github/workflows/plugins.yml` lints, builds, smoke-tests, validates the
-manifest and packs this plugin on every PR that touches it, then smoke-tests the
+`.github/workflows/ci.yml` lints, builds, smoke-tests, validates the
+manifest and packs this plugin on every PR, then smoke-tests the
 packed artifact again — unzipped, so what runs is the bytes that get uploaded —
 and publishes `com.allchat.streamdeck.streamDeckPlugin` as a run artifact. That
 artifact is how a reviewer installs a branch on real hardware without a local
@@ -371,7 +374,7 @@ Plugin logs live next to the plugin:
 ## Layout
 
 ```
-streamdeck-plugin/
+allchat-streamdeck/
 ├── scripts/
 │   ├── build.mjs                     type-check + esbuild bundle (and --watch)
 │   └── smoke.mjs                     launches the built plugin, asserts it registers
@@ -400,12 +403,30 @@ streamdeck-plugin/
 the premium boundary ever moves, those two files are what change.
 
 `src/allchat/linking.ts` is the counterpart of
-`streamcontroller-plugin/allchat/linking.py`, and the two are compared by
-`scripts/check-plugin-parity.py`: the wire constants, the three timeouts, the
-requested scope set, and the rule that neither may ever bind `0.0.0.0`.
+`allchat-streamcontroller/allchat/linking.py`, and the two are compared by the
+All-Chat repository's `scripts/check-plugin-parity.py`: the wire constants, the
+three timeouts, the requested scope set, and the rule that neither may ever bind
+`0.0.0.0`.
+
+### Parity with the StreamController plugin
+
+`.github/workflows/ci.yml` also runs that parity script against this checkout and
+`allchat-streamcontroller`. It fails when a button, a user-visible constant, a
+linking timeout or a `KEEP IN SYNC` pointer exists on one plugin and not the
+other.
+
+A change that has to land on both plugins (a new button, a renamed constant)
+therefore spans repositories. Push a branch **with the same name** to each repo
+that changes: the parity job checks out that branch from the other two
+repositories when it exists, and `main` otherwise, so the three branches are
+checked together before any of them merges. To run it locally, clone all three
+repositories side by side and run
+`python3 ../all-chat/scripts/check-plugin-parity.py` from here.
 
 ---
 
 ## Licence
 
-AGPL-3.0-or-later, as with the rest of All-Chat.
+GPL-3.0-or-later; see [`LICENSE`](LICENSE). The plugin was split out of the
+AGPL-3.0-or-later All-Chat repository, talks to All-Chat only over its public
+HTTP API and contains none of its server code.
